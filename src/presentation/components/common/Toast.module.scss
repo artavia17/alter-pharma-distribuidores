@@ -21,6 +21,9 @@
     right: 16px;
     left: 16px;
     min-width: auto;
+    max-width: none;
+    padding: 14px 16px;
+    border-radius: 10px;
   }
 }
 
@@ -39,6 +42,11 @@
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
+  word-break: break-word;
+
+  @include mobile {
+    font-size: 13px;
+  }
 }
 
 .closeButton {

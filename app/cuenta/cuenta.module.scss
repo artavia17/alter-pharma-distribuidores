@@ -52,6 +52,8 @@
   @include mobile {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
   }
 }
 
@@ -60,12 +62,20 @@
   font-weight: 600;
   color: #111827;
   margin: 0;
+
+  @include mobile {
+    font-size: 20px;
+  }
 }
 
 .subtitle {
   font-size: 14px;
   color: #6b7280;
   margin: 4px 0 0 0;
+
+  @include mobile {
+    font-size: 13px;
+  }
 }
 
 .editButton {
@@ -127,9 +137,21 @@
   padding-bottom: 16px;
   border-bottom: 2px solid #f3f4f6;
 
+  @include mobile {
+    font-size: 16px;
+    margin: 0 0 16px 0;
+    padding-bottom: 12px;
+    gap: 8px;
+  }
+
   svg {
     stroke: #5dd9c1;
     flex-shrink: 0;
+
+    @include mobile {
+      width: 20px;
+      height: 20px;
+    }
   }
 }
 
@@ -153,6 +175,7 @@
   @include mobile {
     grid-template-columns: 1fr;
     gap: 16px;
+    padding: 16px 0;
   }
 }
 
