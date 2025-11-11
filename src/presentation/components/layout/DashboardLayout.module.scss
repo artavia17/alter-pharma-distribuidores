@@ -1,0 +1,32 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.main {
+  flex: 1;
+  margin-left: 80px;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+  height: 100vh;
+
+  @include mobile {
+    margin-left: 0;
+    margin-bottom: 60px;
+  }
+}
+
+.content {
+  flex: 1;
+  padding: 32px 40px;
+  overflow-y: auto;
+
+  @include mobile {
+    padding: 16px;
+  }
+}

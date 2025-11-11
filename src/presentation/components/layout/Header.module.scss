@@ -1,0 +1,95 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 64px;
+
+  @include mobile {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+    align-items: flex-start;
+    min-height: auto;
+  }
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+
+  @include mobile {
+    font-size: 18px;
+  }
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+
+  @include mobile {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+
+  svg {
+    stroke: currentColor;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  @include mobile {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.label {
+  @include mobile {
+    font-size: 13px;
+  }
+}

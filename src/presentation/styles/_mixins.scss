@@ -1,0 +1,81 @@
+// Mixins útiles para el proyecto
+
+// Flexbox center
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Responsive breakpoints
+@mixin mobile {
+  @media (max-width: 640px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin large-desktop {
+  @media (min-width: 1280px) {
+    @content;
+  }
+}
+
+// Truncate text
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Line clamp
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Transition
+@mixin transition($properties...) {
+  transition-property: $properties;
+  transition-duration: var(--transition-normal);
+  transition-timing-function: ease-in-out;
+}
+
+// Card style
+@mixin card {
+  background-color: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+}
+
+// Button reset
+@mixin button-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+// Focus visible
+@mixin focus-visible {
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
