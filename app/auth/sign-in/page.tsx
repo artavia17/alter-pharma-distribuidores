@@ -27,7 +27,7 @@ export default function SignInPage() {
 
       if (response.status === 200 && 'token' in response.data) {
         // Login exitoso - guardar token y datos del distribuidor
-        const { token, distributor, is_first_login } = response.data;
+        const { token, distributor } = response.data;
 
         // Guardar token
         setCookieHelper('user_token', token);
@@ -35,13 +35,8 @@ export default function SignInPage() {
         // Guardar datos del distribuidor
         setCookieHelper('distributor_data', JSON.stringify(distributor));
 
-        // Si es primer login, mostrar modal de cambio de contraseña
-        if (is_first_login) {
-          setShowFirstLoginModal(true);
-        } else {
-          // Redireccionar al home
-          router.push('/');
-        }
+        // Redireccionar al home
+        router.push('/');
       }
     } catch (error: unknown) {
       console.error('Error en login:', error);

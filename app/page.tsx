@@ -252,7 +252,7 @@ export default function Home() {
                 <th>ID</th>
                 <th>Farmacia</th>
                 <th>Producto</th>
-                <th>Dosis</th>
+                <th>Presentación</th>
                 <th>Cantidad</th>
                 <th>Estado</th>
                 <th>Días</th>
@@ -328,7 +328,7 @@ export default function Home() {
                   <span className={styles.detailValue}>{selectedOrder.product.name}</span>
                 </div>
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Dosis:</span>
+                  <span className={styles.detailLabel}>Presentación:</span>
                   <span className={styles.detailValue}>{selectedOrder.dose.dose}</span>
                 </div>
                 <div className={styles.detailItem}>
