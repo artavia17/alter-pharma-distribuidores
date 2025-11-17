@@ -216,6 +216,21 @@ export default function Home() {
                 <p className={styles.cardValue}>{summary.entregado}</p>
               </div>
             </div>
+
+            <div className={styles.card} onClick={() => setStatusFilter('recibido_farmacia')}>
+              <div className={styles.cardIcon} style={{ background: '#fef3c7' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div className={styles.cardContent}>
+                <p className={styles.cardLabel}>Recibido por Farmacia</p>
+                <p className={styles.cardValue}>{summary.recibido_farmacia}</p>
+              </div>
+            </div>
           </div>
         )}
 

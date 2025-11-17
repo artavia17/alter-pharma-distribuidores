@@ -85,6 +85,7 @@ export interface RestockOrdersSummary {
   en_proceso: number;
   enviando: number;
   entregado: number;
+  recibido_farmacia: number;
   pending: number;
 }
 
