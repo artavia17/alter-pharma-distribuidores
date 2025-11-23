@@ -37,22 +37,34 @@ export interface Municipality {
   updated_at: string;
 }
 
+// User Module
+export interface UserModule {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
 // Distributor (según respuesta real de la API)
 export interface Distributor {
   id: number;
-  country_id: number;
-  state_id: number;
-  municipality_id: number;
-  business_name: string;
-  identification_number: string;
-  street_address: string;
-  phone: string;
+  name: string;
   email: string;
-  contact_person_name: string;  // Nombre de la persona de contacto
+  profile_image: string | null;
+  email_verified_at: string | null;
   status: boolean;
-  last_login: string;
   created_at: string;
   updated_at: string;
+  user_modules: UserModule[];
+  // Campos opcionales para distribuidores con ubicación
+  country_id?: number;
+  state_id?: number;
+  municipality_id?: number;
+  business_name?: string;
+  identification_number?: string;
+  street_address?: string;
+  phone?: string;
+  contact_person_name?: string;
+  last_login?: string;
   country?: Country;
   state?: State;
   municipality?: Municipality;
@@ -63,6 +75,7 @@ export interface LoginSuccessData {
   token: string;
   distributor: Distributor;
   is_first_login: boolean;  // Flag para saber si es el primer login
+  is_administrator: boolean;  // Flag para saber si es administrador
 }
 
 // Login Error - Account not validated

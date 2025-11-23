@@ -27,7 +27,7 @@ export default function SignInPage() {
 
       if (response.status === 200 && 'token' in response.data) {
         // Login exitoso - guardar token y datos del distribuidor
-        const { token, distributor } = response.data;
+        const { token, distributor, is_administrator } = response.data;
 
         // Guardar token
         setCookieHelper('user_token', token);
@@ -35,8 +35,15 @@ export default function SignInPage() {
         // Guardar datos del distribuidor
         setCookieHelper('distributor_data', JSON.stringify(distributor));
 
-        // Redireccionar al home
-        router.push('/');
+        // Guardar flag de administrador
+        setCookieHelper('is_administrator', String(is_administrator));
+
+        // Redireccionar según el tipo de usuario
+        if (is_administrator) {
+          router.push('/distributors');
+        } else {
+          router.push('/');
+        }
       }
     } catch (error: unknown) {
       console.error('Error en login:', error);

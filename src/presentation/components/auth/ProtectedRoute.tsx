@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { myAccount } from '@/src/infrastructure/services/protected/my-account.services';
-import { clearCookies } from '@/src/infrastructure/helpers/cookieHelper';
+import { clearCookies, getCookie } from '@/src/infrastructure/helpers/cookieHelper';
 import { isAuthenticated } from '@/src/infrastructure/helpers/authHelper';
 
 interface ProtectedRouteProps {
@@ -12,6 +12,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isValidating, setIsValidating] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -29,6 +30,21 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         const response = await myAccount();
 
         if (response.status === 200) {
+          // Verificar si es administrador
+          const isAdmin = getCookie('is_administrator') === 'true';
+
+          // Si es administrador y está en "/", redirigir a /distributors
+          if (isAdmin && pathname === '/') {
+            router.push('/distributors');
+            return;
+          }
+
+          // Si NO es administrador y está en /distributors, redirigir a "/"
+          if (!isAdmin && pathname.startsWith('/distributors')) {
+            router.push('/');
+            return;
+          }
+
           setIsAuthorized(true);
         } else {
           // Si no es 200, limpiar y redirigir
@@ -47,7 +63,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     };
 
     validateSession();
-  }, [router]);
+  }, [router, pathname]);
 
   // Mostrar loading mientras valida
   if (isValidating) {
