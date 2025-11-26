@@ -10,11 +10,18 @@ import styles from './distributors.module.scss';
 export default function DistributorsPage() {
   const router = useRouter();
   const [distributors, setDistributors] = useState<DistributorListItem[]>([]);
+  const [filteredDistributors, setFilteredDistributors] = useState<DistributorListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadDistributors();
   }, []);
+
+  useEffect(() => {
+    filterDistributors();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, distributors]);
 
   const loadDistributors = async () => {
     try {
@@ -22,12 +29,35 @@ export default function DistributorsPage() {
       const response = await getDistributors();
       if (response.status === 200) {
         setDistributors(response.data);
+        setFilteredDistributors(response.data);
       }
     } catch (error) {
       console.error('Error loading distributors:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterDistributors = () => {
+    if (!searchTerm.trim()) {
+      setFilteredDistributors(distributors);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const filtered = distributors.filter((distributor) => {
+      return (
+        distributor.business_name.toLowerCase().includes(term) ||
+        distributor.contact_person_name.toLowerCase().includes(term) ||
+        distributor.email.toLowerCase().includes(term) ||
+        distributor.phone.toLowerCase().includes(term) ||
+        distributor.identification_number.toLowerCase().includes(term) ||
+        distributor.municipality.name.toLowerCase().includes(term) ||
+        distributor.state.name.toLowerCase().includes(term) ||
+        distributor.country.name.toLowerCase().includes(term)
+      );
+    });
+    setFilteredDistributors(filtered);
   };
 
   const handleViewDistributor = (distributorId: number) => {
@@ -96,6 +126,40 @@ export default function DistributorsPage() {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className={styles.searchContainer}>
+          <div className={styles.searchWrapper}>
+            <svg className={styles.searchIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="Buscar por empresa, contacto, email, teléfono, ubicación..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className={styles.clearSearch}
+                onClick={() => setSearchTerm('')}
+                aria-label="Limpiar búsqueda"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <p className={styles.searchResults}>
+              {filteredDistributors.length} {filteredDistributors.length === 1 ? 'resultado' : 'resultados'}
+            </p>
+          )}
+        </div>
+
         {/* Distributors Table */}
         <div className={styles.tableContainer}>
           <table className={styles.table}>
@@ -112,14 +176,14 @@ export default function DistributorsPage() {
               </tr>
             </thead>
             <tbody>
-              {distributors.length === 0 ? (
+              {filteredDistributors.length === 0 ? (
                 <tr>
                   <td colSpan={8} className={styles.noData}>
-                    No hay distribuidores para mostrar
+                    {searchTerm ? 'No se encontraron distribuidores' : 'No hay distribuidores para mostrar'}
                   </td>
                 </tr>
               ) : (
-                distributors.map((distributor) => (
+                filteredDistributors.map((distributor) => (
                   <tr key={distributor.id}>
                     <td>
                       <strong>{distributor.business_name}</strong>
