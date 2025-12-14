@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/src/presentation/components/layout/DashboardLayout';
 import {
@@ -13,6 +13,7 @@ import {
   DistributorRestockOrderStatus,
 } from '@/src/infrastructure/types/services/protected/distributors.types';
 import styles from '../distributors.module.scss';
+import * as XLSX from 'xlsx';
 
 export default function DistributorDetailPage() {
   const router = useRouter();
@@ -21,9 +22,17 @@ export default function DistributorDetailPage() {
 
   const [distributorData, setDistributorData] = useState<DistributorDetailData | null>(null);
   const [orders, setOrders] = useState<DistributorRestockOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<DistributorRestockOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // Filtros
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [pharmacyFilter, setPharmacyFilter] = useState<string>('');
+  const [productFilter, setProductFilter] = useState<string>('');
+  const [doseFilter, setDoseFilter] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
     if (distributorId) {
@@ -37,7 +46,12 @@ export default function DistributorDetailPage() {
       loadOrders();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [distributorId, statusFilter]);
+  }, [distributorId]);
+
+  useEffect(() => {
+    applyFilters();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders, statusFilter, pharmacyFilter, productFilter, doseFilter, startDate, endDate]);
 
   const loadDistributorDetail = async () => {
     try {
@@ -56,9 +70,10 @@ export default function DistributorDetailPage() {
   const loadOrders = async () => {
     try {
       setLoadingOrders(true);
-      const response = await getDistributorOrders(distributorId, statusFilter || undefined);
+      const response = await getDistributorOrders(distributorId);
       if (response.status === 200) {
         setOrders(response.data.orders);
+        setFilteredOrders(response.data.orders);
       }
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -66,6 +81,137 @@ export default function DistributorDetailPage() {
       setLoadingOrders(false);
     }
   };
+
+  const applyFilters = () => {
+    let filtered = [...orders];
+
+    // Filtro por estado
+    if (statusFilter) {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Filtro por farmacia
+    if (pharmacyFilter) {
+      filtered = filtered.filter(order =>
+        order.pharmacy.commercial_name.toLowerCase().includes(pharmacyFilter.toLowerCase())
+      );
+    }
+
+    // Filtro por producto
+    if (productFilter) {
+      filtered = filtered.filter(order =>
+        order.product.name.toLowerCase().includes(productFilter.toLowerCase())
+      );
+    }
+
+    // Filtro por presentación
+    if (doseFilter) {
+      filtered = filtered.filter(order =>
+        order.dose.dose.toLowerCase().includes(doseFilter.toLowerCase())
+      );
+    }
+
+    // Filtro por fecha de inicio
+    if (startDate) {
+      filtered = filtered.filter(order =>
+        new Date(order.requested_at) >= new Date(startDate)
+      );
+    }
+
+    // Filtro por fecha de fin
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(order =>
+        new Date(order.requested_at) <= endDateTime
+      );
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const clearFilters = () => {
+    setStatusFilter('');
+    setPharmacyFilter('');
+    setProductFilter('');
+    setDoseFilter('');
+    setStartDate('');
+    setEndDate('');
+  };
+
+  const hasActiveFilters = () => {
+    return statusFilter || pharmacyFilter || productFilter || doseFilter || startDate || endDate;
+  };
+
+  const exportToExcel = () => {
+    if (filteredOrders.length === 0) {
+      alert('No hay datos para exportar');
+      return;
+    }
+
+    const data = filteredOrders.map((order) => ({
+      'ID': order.id,
+      'Farmacia': order.pharmacy.commercial_name,
+      'Email Farmacia': order.pharmacy.email,
+      'Teléfono Farmacia': order.pharmacy.phone,
+      'Producto': order.product.name,
+      'Presentación': order.dose.dose,
+      'Cantidad Solicitada': order.quantity_requested,
+      'Estado': order.status_label,
+      'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
+      'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
+      'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
+      'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
+      'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
+      'Fecha Recibido Farmacia': order.pharmacy_received_at ? new Date(order.pharmacy_received_at).toLocaleString('es-ES') : '',
+      'Días desde solicitud': Math.ceil(order.days_since_request),
+      'Notas': order.notes || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Órdenes');
+
+    // Ajustar anchos de columnas
+    const columnWidths = [
+      { wch: 8 },  // ID
+      { wch: 25 }, // Farmacia
+      { wch: 30 }, // Email
+      { wch: 15 }, // Teléfono
+      { wch: 30 }, // Producto
+      { wch: 15 }, // Presentación
+      { wch: 10 }, // Cantidad
+      { wch: 20 }, // Estado
+      { wch: 20 }, // Fecha Solicitado
+      { wch: 20 }, // Fecha Recibido
+      { wch: 20 }, // Fecha Procesado
+      { wch: 20 }, // Fecha Enviando
+      { wch: 20 }, // Fecha Entregado
+      { wch: 20 }, // Fecha Recibido Farmacia
+      { wch: 10 }, // Días
+      { wch: 30 }, // Notas
+    ];
+    worksheet['!cols'] = columnWidths;
+
+    const fileName = `ordenes_${distributorData?.distributor.business_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  // Obtener listas únicas para los filtros
+  const uniquePharmacies = useMemo(() => {
+    const pharmacies = orders.map(o => o.pharmacy.commercial_name);
+    return Array.from(new Set(pharmacies)).sort();
+  }, [orders]);
+
+  const uniqueProducts = useMemo(() => {
+    const products = orders.map(o => o.product.name);
+    return Array.from(new Set(products)).sort();
+  }, [orders]);
+
+  const uniqueDoses = useMemo(() => {
+    const doses = orders.map(o => o.dose.dose);
+    return Array.from(new Set(doses)).sort();
+  }, [orders]);
 
   const getStatusColor = (status: DistributorRestockOrderStatus): string => {
     const colors: Record<DistributorRestockOrderStatus, string> = {
@@ -203,29 +349,122 @@ export default function DistributorDetailPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <label>Estado:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={styles.select}
-            >
-              <option value="">Todos los estados</option>
-              <option value="solicitud_enviada">Solicitud Enviada</option>
-              <option value="recibido">Recibido</option>
-              <option value="en_proceso">En Proceso</option>
-              <option value="enviando">Enviando</option>
-              <option value="entregado">Entregado</option>
-              <option value="recibido_farmacia">Recibido por Farmacia</option>
-            </select>
+        {/* Advanced Filters */}
+        <div className={styles.filtersSection}>
+          <div className={styles.filtersHeader}>
+            <h3 className={styles.sectionTitle}>Filtros Avanzados</h3>
+            <div className={styles.filterActions}>
+              {hasActiveFilters() && (
+                <button onClick={clearFilters} className={styles.clearAllFilters}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                  Limpiar todos
+                </button>
+              )}
+              <button onClick={exportToExcel} className={styles.exportButton}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Exportar a Excel
+              </button>
+            </div>
           </div>
 
-          {statusFilter && (
-            <button onClick={() => setStatusFilter('')} className={styles.clearFilter}>
-              Limpiar filtros
-            </button>
+          <div className={styles.filtersGrid}>
+            <div className={styles.filterGroup}>
+              <label>Farmacia:</label>
+              <select
+                value={pharmacyFilter}
+                onChange={(e) => setPharmacyFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todas las farmacias</option>
+                {uniquePharmacies.map((pharmacy) => (
+                  <option key={pharmacy} value={pharmacy}>
+                    {pharmacy}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Producto:</label>
+              <select
+                value={productFilter}
+                onChange={(e) => setProductFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todos los productos</option>
+                {uniqueProducts.map((product) => (
+                  <option key={product} value={product}>
+                    {product}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Presentación:</label>
+              <select
+                value={doseFilter}
+                onChange={(e) => setDoseFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todas las presentaciones</option>
+                {uniqueDoses.map((dose) => (
+                  <option key={dose} value={dose}>
+                    {dose}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Estado:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todos los estados</option>
+                <option value="solicitud_enviada">Solicitud Enviada</option>
+                <option value="recibido">Recibido</option>
+                <option value="en_proceso">En Proceso</option>
+                <option value="enviando">Enviando</option>
+                <option value="entregado">Entregado</option>
+                <option value="recibido_farmacia">Recibido por Farmacia</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Fecha Inicio:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={styles.dateInput}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Fecha Fin:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className={styles.dateInput}
+              />
+            </div>
+          </div>
+
+          {hasActiveFilters() && (
+            <div className={styles.filterSummary}>
+              Mostrando {filteredOrders.length} de {orders.length} órdenes
+            </div>
           )}
         </div>
 
@@ -252,14 +491,14 @@ export default function DistributorDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.length === 0 ? (
+                {filteredOrders.length === 0 ? (
                   <tr>
                     <td colSpan={8} className={styles.noData}>
-                      No hay órdenes para mostrar
+                      {hasActiveFilters() ? 'No se encontraron órdenes con los filtros aplicados' : 'No hay órdenes para mostrar'}
                     </td>
                   </tr>
                 ) : (
-                  orders.map((order) => (
+                  filteredOrders.map((order) => (
                     <tr key={order.id}>
                       <td>#{order.id}</td>
                       <td>
