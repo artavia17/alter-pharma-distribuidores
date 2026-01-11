@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/src/presentation/components/layout/DashboardLayout';
 import Modal from '@/src/presentation/components/common/Modal';
 import Toast from '@/src/presentation/components/common/Toast';
@@ -24,6 +25,7 @@ import styles from './home.module.scss';
 import * as XLSX from 'xlsx';
 
 export default function Home() {
+  const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const { toast, showSuccess, showError, hideToast } = useToast();
 
@@ -368,6 +370,26 @@ export default function Home() {
               <div className={styles.cardContent}>
                 <p className={styles.cardLabel}>Recibido por Farmacia</p>
                 <p className={styles.cardValue}>{summary.recibido_farmacia}</p>
+              </div>
+            </div>
+
+            <div
+              className={styles.card}
+              onClick={() => router.push('/reports')}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className={styles.cardIcon} style={{ background: '#ddd6fe' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <div className={styles.cardContent}>
+                <p className={styles.cardLabel}>Reportes</p>
+                <p className={styles.cardValue} style={{ fontSize: '16px', marginTop: '4px' }}>Ver reportes</p>
               </div>
             </div>
           </div>
