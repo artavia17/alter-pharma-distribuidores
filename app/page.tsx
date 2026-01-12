@@ -373,7 +373,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div
+            {/* <div
               className={styles.card}
               onClick={() => router.push('/reports')}
               style={{ cursor: 'pointer' }}
@@ -391,7 +391,7 @@ export default function Home() {
                 <p className={styles.cardLabel}>Reportes</p>
                 <p className={styles.cardValue} style={{ fontSize: '16px', marginTop: '4px' }}>Ver reportes</p>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
 

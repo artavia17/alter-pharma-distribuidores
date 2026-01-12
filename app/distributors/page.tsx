@@ -170,7 +170,7 @@ export default function DistributorsPage() {
             </div>
           </div>
 
-          <div
+          {/* <div
             className={styles.card}
             onClick={() => router.push('/distributors/reports')}
             style={{ cursor: 'pointer' }}
@@ -188,7 +188,7 @@ export default function DistributorsPage() {
               <p className={styles.cardLabel}>Reportes</p>
               <p className={styles.cardValue} style={{ fontSize: '16px', marginTop: '4px' }}>Ver reportes</p>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Search Bar */}
