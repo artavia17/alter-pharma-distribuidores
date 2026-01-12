@@ -9,6 +9,11 @@ import {
   getDistributorDetailedReport,
   getGlobalSummary,
 } from '@/src/infrastructure/services/protected/admin-reports.services';
+import type {
+  DistributorsReport,
+  DistributorDetailedReport,
+  GlobalSummary,
+} from '@/src/infrastructure/types/services/protected/admin-reports.types';
 import styles from './admin-reports.module.scss';
 import * as XLSX from 'xlsx';
 
@@ -18,9 +23,9 @@ export default function AdminReportsPage() {
   // Reports state
   const [activeReport, setActiveReport] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
-  const [distributorsReportData, setDistributorsReportData] = useState<any>(null);
-  const [distributorDetailedData, setDistributorDetailedData] = useState<any>(null);
-  const [globalSummaryData, setGlobalSummaryData] = useState<any>(null);
+  const [distributorsReportData, setDistributorsReportData] = useState<DistributorsReport | null>(null);
+  const [distributorDetailedData, setDistributorDetailedData] = useState<DistributorDetailedReport | null>(null);
+  const [globalSummaryData, setGlobalSummaryData] = useState<GlobalSummary | null>(null);
 
   // Filters
   const [startDate, setStartDate] = useState<string>('');
@@ -224,7 +229,7 @@ export default function AdminReportsPage() {
   const exportGlobalSummaryToExcel = () => {
     if (!globalSummaryData) return;
 
-    const exportData = [
+    const exportData: Array<{ 'Métrica': string; 'Valor': string | number }> = [
       { 'Métrica': 'Total de Órdenes', 'Valor': globalSummaryData.total_orders },
       { 'Métrica': 'Cantidad Total Distribuida', 'Valor': globalSummaryData.total_quantity_distributed },
       { 'Métrica': 'Órdenes Pendientes', 'Valor': globalSummaryData.orders_by_status.pending },

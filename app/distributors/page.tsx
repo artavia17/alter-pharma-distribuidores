@@ -1,40 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/src/presentation/components/layout/DashboardLayout';
-import Toast from '@/src/presentation/components/common/Toast';
-import { useToast } from '@/src/presentation/hooks/useToast';
 import { getDistributors } from '@/src/infrastructure/services/protected/distributors.services';
 import { DistributorListItem } from '@/src/infrastructure/types/services/protected/distributors.types';
-import {
-  getDistributorsReport,
-  getDistributorDetailedReport,
-  getGlobalSummary,
-} from '@/src/infrastructure/services/protected/admin-reports.services';
 import styles from './distributors.module.scss';
-import * as XLSX from 'xlsx';
 
 export default function DistributorsPage() {
   const router = useRouter();
-  const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [distributors, setDistributors] = useState<DistributorListItem[]>([]);
   const [filteredDistributors, setFilteredDistributors] = useState<DistributorListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Reports state
-  const [activeReport, setActiveReport] = useState<string | null>(null);
-  const [loadingReport, setLoadingReport] = useState(false);
-  const [distributorsReportData, setDistributorsReportData] = useState<any>(null);
-  const [distributorDetailedData, setDistributorDetailedData] = useState<any>(null);
-  const [globalSummaryData, setGlobalSummaryData] = useState<any>(null);
-  const [selectedDistributorId, setSelectedDistributorId] = useState<number | null>(null);
-
-  // Filters for reports
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  // Advanced filters
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [stateFilter, setStateFilter] = useState<string>('');
+  const [countryFilter, setCountryFilter] = useState<string>('');
 
   useEffect(() => {
     loadDistributors();
@@ -43,7 +27,7 @@ export default function DistributorsPage() {
   useEffect(() => {
     filterDistributors();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, distributors]);
+  }, [searchTerm, statusFilter, stateFilter, countryFilter, distributors]);
 
   const loadDistributors = async () => {
     try {
@@ -61,26 +45,65 @@ export default function DistributorsPage() {
   };
 
   const filterDistributors = () => {
-    if (!searchTerm.trim()) {
-      setFilteredDistributors(distributors);
-      return;
+    let filtered = [...distributors];
+
+    // Filtro por búsqueda
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((distributor) => {
+        return (
+          distributor.business_name.toLowerCase().includes(term) ||
+          distributor.contact_person_name.toLowerCase().includes(term) ||
+          distributor.email.toLowerCase().includes(term) ||
+          distributor.phone.toLowerCase().includes(term) ||
+          distributor.identification_number.toLowerCase().includes(term) ||
+          distributor.municipality.name.toLowerCase().includes(term) ||
+          distributor.state.name.toLowerCase().includes(term) ||
+          distributor.country.name.toLowerCase().includes(term)
+        );
+      });
     }
 
-    const term = searchTerm.toLowerCase();
-    const filtered = distributors.filter((distributor) => {
-      return (
-        distributor.business_name.toLowerCase().includes(term) ||
-        distributor.contact_person_name.toLowerCase().includes(term) ||
-        distributor.email.toLowerCase().includes(term) ||
-        distributor.phone.toLowerCase().includes(term) ||
-        distributor.identification_number.toLowerCase().includes(term) ||
-        distributor.municipality.name.toLowerCase().includes(term) ||
-        distributor.state.name.toLowerCase().includes(term) ||
-        distributor.country.name.toLowerCase().includes(term)
-      );
-    });
+    // Filtro por estado (activo/inactivo)
+    if (statusFilter) {
+      const isActive = statusFilter === 'active';
+      filtered = filtered.filter((distributor) => distributor.status === isActive);
+    }
+
+    // Filtro por estado/provincia
+    if (stateFilter) {
+      filtered = filtered.filter((distributor) => distributor.state.name === stateFilter);
+    }
+
+    // Filtro por país
+    if (countryFilter) {
+      filtered = filtered.filter((distributor) => distributor.country.name === countryFilter);
+    }
+
     setFilteredDistributors(filtered);
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setStateFilter('');
+    setCountryFilter('');
+  };
+
+  const hasActiveFilters = () => {
+    return searchTerm || statusFilter || stateFilter || countryFilter;
+  };
+
+  // Obtener listas únicas para los filtros
+  const uniqueStates = useMemo(() => {
+    const states = distributors.map((d) => d.state.name);
+    return Array.from(new Set(states)).sort();
+  }, [distributors]);
+
+  const uniqueCountries = useMemo(() => {
+    const countries = distributors.map((d) => d.country.name);
+    return Array.from(new Set(countries)).sort();
+  }, [distributors]);
 
   const handleViewDistributor = (distributorId: number) => {
     router.push(`/distributors/${distributorId}`);
@@ -199,6 +222,75 @@ export default function DistributorsPage() {
             <p className={styles.searchResults}>
               {filteredDistributors.length} {filteredDistributors.length === 1 ? 'resultado' : 'resultados'}
             </p>
+          )}
+        </div>
+
+        {/* Advanced Filters */}
+        <div className={styles.filtersSection}>
+          <div className={styles.filtersHeader}>
+            <h3 className={styles.sectionTitle}>Filtros Avanzados</h3>
+            {hasActiveFilters() && (
+              <button onClick={clearFilters} className={styles.clearAllFilters}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                Limpiar todos
+              </button>
+            )}
+          </div>
+
+          <div className={styles.filtersGrid}>
+            <div className={styles.filterGroup}>
+              <label>Estado:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todos los estados</option>
+                <option value="active">Activos</option>
+                <option value="inactive">Inactivos</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>Estado/Provincia:</label>
+              <select
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todos los estados</option>
+                {uniqueStates.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label>País:</label>
+              <select
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Todos los países</option>
+                {uniqueCountries.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {hasActiveFilters() && (
+            <div className={styles.filterSummary}>
+              Mostrando {filteredDistributors.length} de {distributors.length} distribuidores
+            </div>
           )}
         </div>
 

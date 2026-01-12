@@ -429,6 +429,11 @@
   @include mobile {
     grid-template-columns: 1fr;
   }
+
+  // Hacer que el tercer elemento ocupe todo el ancho
+  > .filterGroup:nth-child(3) {
+    grid-column: 1 / -1;
+  }
 }
 
 .dateInput {
