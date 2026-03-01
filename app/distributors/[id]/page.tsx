@@ -172,7 +172,7 @@ export default function DistributorDetailPage() {
         'Notas': order.notes || '',
       };
       if (order.items.length === 0) {
-        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' }];
+        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
       }
       return order.items.map((item: DistributorOrderItem) => ({
         ...base,
