@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/src/presentation/components/layout/DashboardLayout';
+import Modal from '@/src/presentation/components/common/Modal';
+import { useModal } from '@/src/presentation/hooks/useModal';
 import {
   getDistributorDetail,
   getDistributorOrders,
@@ -11,6 +13,7 @@ import {
   DistributorDetailData,
   DistributorRestockOrder,
   DistributorRestockOrderStatus,
+  DistributorOrderItem,
 } from '@/src/infrastructure/types/services/protected/distributors.types';
 import styles from '../distributors.module.scss';
 import * as XLSX from 'xlsx';
@@ -19,10 +22,12 @@ export default function DistributorDetailPage() {
   const router = useRouter();
   const params = useParams();
   const distributorId = Number(params.id);
+  const { isOpen, openModal, closeModal } = useModal();
 
   const [distributorData, setDistributorData] = useState<DistributorDetailData | null>(null);
   const [orders, setOrders] = useState<DistributorRestockOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<DistributorRestockOrder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<DistributorRestockOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
@@ -100,14 +105,14 @@ export default function DistributorDetailPage() {
     // Filtro por producto
     if (productFilter) {
       filtered = filtered.filter(order =>
-        order.product.name.toLowerCase().includes(productFilter.toLowerCase())
+        order.items.some(item => item.product.name.toLowerCase().includes(productFilter.toLowerCase()))
       );
     }
 
     // Filtro por presentación
     if (doseFilter) {
       filtered = filtered.filter(order =>
-        order.dose.dose.toLowerCase().includes(doseFilter.toLowerCase())
+        order.items.some(item => item.dose.dose.toLowerCase().includes(doseFilter.toLowerCase()))
       );
     }
 
@@ -149,24 +154,33 @@ export default function DistributorDetailPage() {
       return;
     }
 
-    const data = filteredOrders.map((order) => ({
-      'ID': order.id,
-      'Farmacia': order.pharmacy.commercial_name,
-      'Email Farmacia': order.pharmacy.email,
-      'Teléfono Farmacia': order.pharmacy.phone,
-      'Producto': order.product.name,
-      'Presentación': order.dose.dose,
-      'Cantidad Solicitada': order.quantity_requested,
-      'Estado': order.status_label,
-      'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
-      'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
-      'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
-      'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
-      'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
-      'Fecha Recibido Farmacia': order.pharmacy_received_at ? new Date(order.pharmacy_received_at).toLocaleString('es-ES') : '',
-      'Días desde solicitud': Math.ceil(order.days_since_request),
-      'Notas': order.notes || '',
-    }));
+    const data = filteredOrders.flatMap((order) => {
+      const base = {
+        'N° Orden': order.order_number,
+        'Farmacia': order.pharmacy.commercial_name,
+        'Sub-Farmacia': order.sub_pharmacy?.commercial_name || '',
+        'Email Farmacia': order.pharmacy.email,
+        'Teléfono Farmacia': order.pharmacy.phone,
+        'Estado': order.status_label,
+        'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
+        'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
+        'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
+        'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
+        'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
+        'Fecha Recibido Farmacia': order.pharmacy_received_at ? new Date(order.pharmacy_received_at).toLocaleString('es-ES') : '',
+        'Días desde solicitud': Math.ceil(order.days_since_request),
+        'Notas': order.notes || '',
+      };
+      if (order.items.length === 0) {
+        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' }];
+      }
+      return order.items.map((item: DistributorOrderItem) => ({
+        ...base,
+        'Producto': item.product.name,
+        'Presentación': item.dose.dose,
+        'Cantidad': item.quantity_requested,
+      }));
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -174,13 +188,11 @@ export default function DistributorDetailPage() {
 
     // Ajustar anchos de columnas
     const columnWidths = [
-      { wch: 8 },  // ID
+      { wch: 25 }, // N° Orden
       { wch: 25 }, // Farmacia
+      { wch: 25 }, // Sub-Farmacia
       { wch: 30 }, // Email
       { wch: 15 }, // Teléfono
-      { wch: 30 }, // Producto
-      { wch: 15 }, // Presentación
-      { wch: 10 }, // Cantidad
       { wch: 20 }, // Estado
       { wch: 20 }, // Fecha Solicitado
       { wch: 20 }, // Fecha Recibido
@@ -190,6 +202,9 @@ export default function DistributorDetailPage() {
       { wch: 20 }, // Fecha Recibido Farmacia
       { wch: 10 }, // Días
       { wch: 30 }, // Notas
+      { wch: 30 }, // Producto
+      { wch: 15 }, // Presentación
+      { wch: 10 }, // Cantidad
     ];
     worksheet['!cols'] = columnWidths;
 
@@ -204,14 +219,19 @@ export default function DistributorDetailPage() {
   }, [orders]);
 
   const uniqueProducts = useMemo(() => {
-    const products = orders.map(o => o.product.name);
+    const products = orders.flatMap(o => o.items.map(item => item.product.name));
     return Array.from(new Set(products)).sort();
   }, [orders]);
 
   const uniqueDoses = useMemo(() => {
-    const doses = orders.map(o => o.dose.dose);
+    const doses = orders.flatMap(o => o.items.map(item => item.dose.dose));
     return Array.from(new Set(doses)).sort();
   }, [orders]);
+
+  const handleViewDetail = (order: DistributorRestockOrder) => {
+    setSelectedOrder(order);
+    openModal();
+  };
 
   const getStatusColor = (status: DistributorRestockOrderStatus): string => {
     const colors: Record<DistributorRestockOrderStatus, string> = {
@@ -480,35 +500,43 @@ export default function DistributorDetailPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>N° Orden</th>
                   <th>Farmacia</th>
-                  <th>Producto</th>
-                  <th>Presentación</th>
-                  <th>Cantidad</th>
+                  <th>Productos</th>
+                  <th>Items</th>
+                  <th>Cantidad Total</th>
                   <th>Estado</th>
                   <th>Días</th>
                   <th>Solicitado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className={styles.noData}>
+                    <td colSpan={9} className={styles.noData}>
                       {hasActiveFilters() ? 'No se encontraron órdenes con los filtros aplicados' : 'No hay órdenes para mostrar'}
                     </td>
                   </tr>
                 ) : (
                   filteredOrders.map((order) => (
                     <tr key={order.id}>
-                      <td>#{order.id}</td>
+                      <td>{order.order_number}</td>
                       <td>
                         <strong>{order.pharmacy.commercial_name}</strong>
                         <br />
                         <small style={{ color: '#6b7280' }}>{order.pharmacy.email}</small>
+                        {order.sub_pharmacy && (
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>Sub: {order.sub_pharmacy.commercial_name}</div>
+                        )}
                       </td>
-                      <td>{order.product.name}</td>
-                      <td>{order.dose.dose}</td>
-                      <td>{order.quantity_requested}</td>
+                      <td>
+                        {order.items.length > 0
+                          ? order.items.map((item: DistributorOrderItem) => item.product.name).join(', ')
+                          : '-'}
+                      </td>
+                      <td>{order.total_items}</td>
+                      <td>{order.total_quantity}</td>
                       <td>
                         <span
                           className={styles.orderStatusBadge}
@@ -519,6 +547,14 @@ export default function DistributorDetailPage() {
                       </td>
                       <td>{Math.ceil(order.days_since_request)} días</td>
                       <td>{new Date(order.requested_at).toLocaleDateString('es-ES')}</td>
+                      <td>
+                        <button
+                          onClick={() => handleViewDetail(order)}
+                          className={styles.actionButton}
+                        >
+                          Ver detalle
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -527,6 +563,157 @@ export default function DistributorDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Order Detail Modal */}
+      <Modal
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={selectedOrder ? `Orden ${selectedOrder.order_number}` : 'Detalle de Orden'}
+        size="large"
+      >
+        {selectedOrder && (
+          <div className={styles.orderDetail}>
+            {/* Info general */}
+            <div className={styles.detailSection}>
+              <h3>Información de la Orden</h3>
+              <div className={styles.detailGrid}>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>N° Orden</span>
+                  <span className={styles.detailValue}>{selectedOrder.order_number}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Estado</span>
+                  <span>
+                    <span
+                      className={styles.orderStatusBadge}
+                      style={{ background: getStatusColor(selectedOrder.status) }}
+                    >
+                      {selectedOrder.status_label}
+                    </span>
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Farmacia</span>
+                  <span className={styles.detailValue}>{selectedOrder.pharmacy.commercial_name}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Email Farmacia</span>
+                  <span className={styles.detailValue}>{selectedOrder.pharmacy.email}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Teléfono Farmacia</span>
+                  <span className={styles.detailValue}>{selectedOrder.pharmacy.phone}</span>
+                </div>
+                {selectedOrder.sub_pharmacy && (
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Sub-Farmacia</span>
+                    <span className={styles.detailValue}>{selectedOrder.sub_pharmacy.commercial_name}</span>
+                  </div>
+                )}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Total Items</span>
+                  <span className={styles.detailValue}>{selectedOrder.total_items}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Cantidad Total</span>
+                  <span className={styles.detailValue}>{selectedOrder.total_quantity}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Días desde solicitud</span>
+                  <span className={styles.detailValue}>{Math.ceil(selectedOrder.days_since_request)} días</span>
+                </div>
+                {selectedOrder.notes && (
+                  <div className={styles.detailItem} style={{ gridColumn: '1 / -1' }}>
+                    <span className={styles.detailLabel}>Notas</span>
+                    <span className={styles.detailValue}>{selectedOrder.notes}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Productos solicitados */}
+            {selectedOrder.items.length > 0 && (
+              <div className={styles.detailSection}>
+                <h3>Productos Solicitados</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <th style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Producto</th>
+                      <th style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Presentación</th>
+                      <th style={{ textAlign: 'right', padding: '8px 10px', color: '#6b7280', fontWeight: 600, fontSize: '12px', textTransform: 'uppercase' }}>Cantidad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedOrder.items.map((item: DistributorOrderItem) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px' }}>
+                          <div style={{ fontWeight: 500 }}>{item.product.name}</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.product.description}</div>
+                        </td>
+                        <td style={{ padding: '10px', color: '#374151' }}>{item.dose.dose}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{item.quantity_requested}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Línea de tiempo de fechas */}
+            <div className={styles.detailSection}>
+              <h3>Seguimiento de Fechas</h3>
+              <div className={styles.detailGrid}>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Solicitado</span>
+                  <span className={styles.detailValue}>
+                    {new Date(selectedOrder.requested_at).toLocaleString('es-ES')}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Recibido por Distribuidor</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.received_at
+                      ? new Date(selectedOrder.received_at).toLocaleString('es-ES')
+                      : <span style={{ color: '#9ca3af' }}>Pendiente</span>}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>En Proceso</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.processed_at
+                      ? new Date(selectedOrder.processed_at).toLocaleString('es-ES')
+                      : <span style={{ color: '#9ca3af' }}>Pendiente</span>}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Enviando</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.shipped_at
+                      ? new Date(selectedOrder.shipped_at).toLocaleString('es-ES')
+                      : <span style={{ color: '#9ca3af' }}>Pendiente</span>}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Entregado al Distribuidor</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.delivered_at
+                      ? new Date(selectedOrder.delivered_at).toLocaleString('es-ES')
+                      : <span style={{ color: '#9ca3af' }}>Pendiente</span>}
+                  </span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Recibido por Farmacia</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.pharmacy_received_at
+                      ? new Date(selectedOrder.pharmacy_received_at).toLocaleString('es-ES')
+                      : <span style={{ color: '#9ca3af' }}>Pendiente</span>}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 }

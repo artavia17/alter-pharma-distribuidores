@@ -117,13 +117,23 @@ export type DistributorRestockOrderStatus =
   | 'entregado'
   | 'recibido_farmacia';
 
-// Distributor Restock Order
-export interface DistributorRestockOrder {
+// Distributor Order Item
+export interface DistributorOrderItem {
   id: number;
-  pharmacy: OrderPharmacy;
   product: OrderProduct;
   dose: OrderDose;
   quantity_requested: number;
+}
+
+// Distributor Restock Order
+export interface DistributorRestockOrder {
+  id: number;
+  order_number: string;
+  pharmacy: OrderPharmacy;
+  sub_pharmacy: OrderPharmacy | null;
+  items: DistributorOrderItem[];
+  total_items: number;
+  total_quantity: number;
   status: DistributorRestockOrderStatus;
   status_label: string;
   requested_at: string;

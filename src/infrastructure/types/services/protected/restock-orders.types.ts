@@ -53,12 +53,21 @@ export interface TimelineItem {
   completed: boolean;
 }
 
-export interface RestockOrder {
+export interface OrderItem {
   id: number;
-  pharmacy: Pharmacy;
   product: Product;
   dose: Dose;
   quantity_requested: number;
+}
+
+export interface RestockOrder {
+  id: number;
+  order_number: string;
+  pharmacy: Pharmacy;
+  sub_pharmacy: Pharmacy | null;
+  items: OrderItem[];
+  total_items: number;
+  total_quantity: number;
   status: RestockOrderStatus;
   status_label: string;
   requested_at: string;
@@ -67,8 +76,7 @@ export interface RestockOrder {
   shipped_at: string | null;
   delivered_at: string | null;
   days_since_request: number;
-  redemption_transaction_id: number;
-  notes: string;
+  notes: string | null;
   created_at: string;
 }
 

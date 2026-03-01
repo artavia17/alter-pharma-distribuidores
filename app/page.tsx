@@ -20,6 +20,7 @@ import {
   RestockOrdersSummary,
   Pharmacy,
   RestockOrderStatus,
+  OrderItem,
 } from '@/src/infrastructure/types/services/protected/restock-orders.types';
 import styles from './home.module.scss';
 import * as XLSX from 'xlsx';
@@ -97,14 +98,14 @@ export default function Home() {
     // Filtro por producto
     if (productFilter) {
       filtered = filtered.filter(order =>
-        order.product.name.toLowerCase().includes(productFilter.toLowerCase())
+        order.items.some(item => item.product.name.toLowerCase().includes(productFilter.toLowerCase()))
       );
     }
 
     // Filtro por presentación
     if (doseFilter) {
       filtered = filtered.filter(order =>
-        order.dose.dose.toLowerCase().includes(doseFilter.toLowerCase())
+        order.items.some(item => item.dose.dose.toLowerCase().includes(doseFilter.toLowerCase()))
       );
     }
 
@@ -146,21 +147,30 @@ export default function Home() {
       return;
     }
 
-    const data = filteredOrders.map((order) => ({
-      'ID': order.id,
-      'Farmacia': order.pharmacy.commercial_name,
-      'Producto': order.product.name,
-      'Presentación': order.dose.dose,
-      'Cantidad Solicitada': order.quantity_requested,
-      'Estado': order.status_label,
-      'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
-      'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
-      'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
-      'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
-      'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
-      'Días desde solicitud': Math.ceil(order.days_since_request),
-      'Notas': order.notes || '',
-    }));
+    const data = filteredOrders.flatMap((order) => {
+      const base = {
+        'N° Orden': order.order_number,
+        'Farmacia': order.pharmacy.commercial_name,
+        'Sub-Farmacia': order.sub_pharmacy?.commercial_name || '',
+        'Estado': order.status_label,
+        'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
+        'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
+        'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
+        'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
+        'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
+        'Días desde solicitud': Math.ceil(order.days_since_request),
+        'Notas': order.notes || '',
+      };
+      if (order.items.length === 0) {
+        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' }];
+      }
+      return order.items.map((item: OrderItem) => ({
+        ...base,
+        'Producto': item.product.name,
+        'Presentación': item.dose.dose,
+        'Cantidad': item.quantity_requested,
+      }));
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -168,11 +178,9 @@ export default function Home() {
 
     // Ajustar anchos de columnas
     const columnWidths = [
-      { wch: 8 },  // ID
+      { wch: 25 }, // N° Orden
       { wch: 25 }, // Farmacia
-      { wch: 30 }, // Producto
-      { wch: 15 }, // Presentación
-      { wch: 10 }, // Cantidad
+      { wch: 25 }, // Sub-Farmacia
       { wch: 20 }, // Estado
       { wch: 20 }, // Fecha Solicitado
       { wch: 20 }, // Fecha Recibido
@@ -181,6 +189,9 @@ export default function Home() {
       { wch: 20 }, // Fecha Entregado
       { wch: 10 }, // Días
       { wch: 30 }, // Notas
+      { wch: 30 }, // Producto
+      { wch: 15 }, // Presentación
+      { wch: 10 }, // Cantidad
     ];
     worksheet['!cols'] = columnWidths;
 
@@ -195,12 +206,12 @@ export default function Home() {
   }, [orders]);
 
   const uniqueProducts = useMemo(() => {
-    const products = orders.map(o => o.product.name);
+    const products = orders.flatMap(o => o.items.map(item => item.product.name));
     return Array.from(new Set(products)).sort();
   }, [orders]);
 
   const uniqueDoses = useMemo(() => {
-    const doses = orders.map(o => o.dose.dose);
+    const doses = orders.flatMap(o => o.items.map(item => item.dose.dose));
     return Array.from(new Set(doses)).sort();
   }, [orders]);
 
@@ -519,11 +530,11 @@ export default function Home() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>N° Orden</th>
                 <th>Farmacia</th>
-                <th>Producto</th>
-                <th>Presentación</th>
-                <th>Cantidad</th>
+                <th>Productos</th>
+                <th>Items</th>
+                <th>Cantidad Total</th>
                 <th>Estado</th>
                 <th>Días</th>
                 <th>Solicitado</th>
@@ -540,11 +551,20 @@ export default function Home() {
               ) : (
                 filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td>#{order.id}</td>
-                    <td>{order.pharmacy.commercial_name}</td>
-                    <td>{order.product.name}</td>
-                    <td>{order.dose.dose}</td>
-                    <td>{order.quantity_requested}</td>
+                    <td>{order.order_number}</td>
+                    <td>
+                      <div>{order.pharmacy.commercial_name}</div>
+                      {order.sub_pharmacy && (
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>Sub: {order.sub_pharmacy.commercial_name}</div>
+                      )}
+                    </td>
+                    <td>
+                      {order.items.length > 0
+                        ? order.items.map((item: OrderItem) => item.product.name).join(', ')
+                        : '-'}
+                    </td>
+                    <td>{order.total_items}</td>
+                    <td>{order.total_quantity}</td>
                     <td>
                       <span
                         className={styles.statusBadge}
@@ -590,22 +610,51 @@ export default function Home() {
               <h3>Información de la Orden</h3>
               <div className={styles.detailGrid}>
                 <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>N° Orden:</span>
+                  <span className={styles.detailValue}>{selectedOrder.order_number}</span>
+                </div>
+                <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Farmacia:</span>
                   <span className={styles.detailValue}>{selectedOrder.pharmacy.commercial_name}</span>
                 </div>
+                {selectedOrder.sub_pharmacy && (
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Sub-Farmacia:</span>
+                    <span className={styles.detailValue}>{selectedOrder.sub_pharmacy.commercial_name}</span>
+                  </div>
+                )}
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Producto:</span>
-                  <span className={styles.detailValue}>{selectedOrder.product.name}</span>
+                  <span className={styles.detailLabel}>Total Items:</span>
+                  <span className={styles.detailValue}>{selectedOrder.total_items}</span>
                 </div>
                 <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Presentación:</span>
-                  <span className={styles.detailValue}>{selectedOrder.dose.dose}</span>
-                </div>
-                <div className={styles.detailItem}>
-                  <span className={styles.detailLabel}>Cantidad:</span>
-                  <span className={styles.detailValue}>{selectedOrder.quantity_requested}</span>
+                  <span className={styles.detailLabel}>Cantidad Total:</span>
+                  <span className={styles.detailValue}>{selectedOrder.total_quantity}</span>
                 </div>
               </div>
+              {selectedOrder.items.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <h4 style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>Productos Solicitados</h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <th style={{ textAlign: 'left', padding: '6px 8px', color: '#6b7280' }}>Producto</th>
+                        <th style={{ textAlign: 'left', padding: '6px 8px', color: '#6b7280' }}>Presentación</th>
+                        <th style={{ textAlign: 'right', padding: '6px 8px', color: '#6b7280' }}>Cantidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedOrder.items.map((item: OrderItem) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                          <td style={{ padding: '6px 8px' }}>{item.product.name}</td>
+                          <td style={{ padding: '6px 8px' }}>{item.dose.dose}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'right' }}>{item.quantity_requested}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* Timeline */}
