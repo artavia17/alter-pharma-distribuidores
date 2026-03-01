@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/src/presentation/components/layout/DashboardLayout';
 import Modal from '@/src/presentation/components/common/Modal';
 import Toast from '@/src/presentation/components/common/Toast';
@@ -10,7 +9,6 @@ import { useToast } from '@/src/presentation/hooks/useToast';
 import {
   getRestockOrders,
   getRestockOrdersSummary,
-  getPharmacies,
   getRestockOrderDetail,
   updateOrderStatus,
 } from '@/src/infrastructure/services/protected/restock-orders.services';
@@ -18,7 +16,6 @@ import {
   RestockOrder,
   RestockOrderDetail,
   RestockOrdersSummary,
-  Pharmacy,
   RestockOrderStatus,
   OrderItem,
 } from '@/src/infrastructure/types/services/protected/restock-orders.types';
@@ -26,14 +23,12 @@ import styles from './home.module.scss';
 import * as XLSX from 'xlsx';
 
 export default function Home() {
-  const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const { toast, showSuccess, showError, hideToast } = useToast();
 
   const [orders, setOrders] = useState<RestockOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<RestockOrder[]>([]);
   const [summary, setSummary] = useState<RestockOrdersSummary | null>(null);
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<RestockOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -60,10 +55,9 @@ export default function Home() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [ordersResponse, summaryResponse, pharmaciesResponse] = await Promise.all([
+      const [ordersResponse, summaryResponse] = await Promise.all([
         getRestockOrders(),
         getRestockOrdersSummary(),
-        getPharmacies(),
       ]);
 
       if (ordersResponse.status === 200) {
@@ -71,7 +65,6 @@ export default function Home() {
         setFilteredOrders(ordersResponse.data);
       }
       if (summaryResponse.status === 200) setSummary(summaryResponse.data);
-      if (pharmaciesResponse.status === 200) setPharmacies(pharmaciesResponse.data);
     } catch (error) {
       console.error('Error loading data:', error);
       showError('Error al cargar las órdenes');
@@ -162,7 +155,7 @@ export default function Home() {
         'Notas': order.notes || '',
       };
       if (order.items.length === 0) {
-        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' }];
+        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
       }
       return order.items.map((item: OrderItem) => ({
         ...base,
