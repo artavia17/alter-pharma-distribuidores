@@ -141,10 +141,16 @@ export default function Home() {
     }
 
     const data = filteredOrders.flatMap((order) => {
+      const pharmacyBase = {
+        'Farmacia': order.pharmacy.commercial_name,
+        'Cédula Jurídica': order.pharmacy.identification_number || '',
+        'Dirección': order.pharmacy.street_address || '',
+      };
       if (order.items.length === 0) {
-        return [{ 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
+        return [{ ...pharmacyBase, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
       }
       return order.items.map((item: OrderItem) => ({
+        ...pharmacyBase,
         'Producto': item.product.name,
         'Presentación': item.dose.dose,
         'Cantidad': item.quantity_requested,
@@ -157,6 +163,9 @@ export default function Home() {
 
     // Ajustar anchos de columnas
     const columnWidths = [
+      { wch: 30 }, // Farmacia
+      { wch: 20 }, // Cédula Jurídica
+      { wch: 35 }, // Dirección
       { wch: 40 }, // Producto
       { wch: 30 }, // Presentación
       { wch: 12 }, // Cantidad
