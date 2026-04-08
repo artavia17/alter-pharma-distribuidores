@@ -141,24 +141,10 @@ export default function Home() {
     }
 
     const data = filteredOrders.flatMap((order) => {
-      const base = {
-        'N° Orden': order.order_number,
-        'Farmacia': order.pharmacy.commercial_name,
-        'Sub-Farmacia': order.sub_pharmacy?.commercial_name || '',
-        'Estado': order.status_label,
-        'Fecha Solicitado': new Date(order.requested_at).toLocaleString('es-ES'),
-        'Fecha Recibido': order.received_at ? new Date(order.received_at).toLocaleString('es-ES') : '',
-        'Fecha Procesado': order.processed_at ? new Date(order.processed_at).toLocaleString('es-ES') : '',
-        'Fecha Enviando': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
-        'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
-        'Días desde solicitud': Math.ceil(order.days_since_request),
-        'Notas': order.notes || '',
-      };
       if (order.items.length === 0) {
-        return [{ ...base, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
+        return [{ 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
       }
       return order.items.map((item: OrderItem) => ({
-        ...base,
         'Producto': item.product.name,
         'Presentación': item.dose.dose,
         'Cantidad': item.quantity_requested,
@@ -171,20 +157,9 @@ export default function Home() {
 
     // Ajustar anchos de columnas
     const columnWidths = [
-      { wch: 25 }, // N° Orden
-      { wch: 25 }, // Farmacia
-      { wch: 25 }, // Sub-Farmacia
-      { wch: 20 }, // Estado
-      { wch: 20 }, // Fecha Solicitado
-      { wch: 20 }, // Fecha Recibido
-      { wch: 20 }, // Fecha Procesado
-      { wch: 20 }, // Fecha Enviando
-      { wch: 20 }, // Fecha Entregado
-      { wch: 10 }, // Días
-      { wch: 30 }, // Notas
-      { wch: 30 }, // Producto
-      { wch: 15 }, // Presentación
-      { wch: 10 }, // Cantidad
+      { wch: 40 }, // Producto
+      { wch: 30 }, // Presentación
+      { wch: 12 }, // Cantidad
     ];
     worksheet['!cols'] = columnWidths;
 
