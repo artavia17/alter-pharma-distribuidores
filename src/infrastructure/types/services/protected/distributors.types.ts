@@ -93,6 +93,8 @@ export interface OrderPharmacy {
   commercial_name: string;
   email: string;
   phone: string;
+  identification_number?: string;
+  street_address?: string;
 }
 
 // Product for orders
