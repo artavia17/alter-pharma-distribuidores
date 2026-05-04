@@ -147,12 +147,11 @@ export default function Home() {
         'Dirección': order.pharmacy.street_address || '',
       };
       if (order.items.length === 0) {
-        return [{ ...pharmacyBase, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
+        return [{ ...pharmacyBase, 'Producto': '', 'Cantidad': '' as string | number }];
       }
       return order.items.map((item: OrderItem) => ({
         ...pharmacyBase,
-        'Producto': item.product.name,
-        'Presentación': item.dose.dose,
+        'Producto': item.product.name + " - " + item.dose.dose,
         'Cantidad': item.quantity_requested,
       }));
     });
