@@ -143,6 +143,7 @@ export default function Home() {
     const data = filteredOrders.flatMap((order) => {
       const pharmacyBase = {
         'Farmacia': order.pharmacy.commercial_name,
+        'Sucursal': order.sub_pharmacy?.commercial_name || '',
         'Cédula Jurídica': order.pharmacy.identification_number || '',
         'Dirección': order.pharmacy.street_address || '',
       };
@@ -163,6 +164,7 @@ export default function Home() {
     // Ajustar anchos de columnas
     const columnWidths = [
       { wch: 30 }, // Farmacia
+      { wch: 25 }, // Sucursal
       { wch: 20 }, // Cédula Jurídica
       { wch: 35 }, // Dirección
       { wch: 40 }, // Producto
