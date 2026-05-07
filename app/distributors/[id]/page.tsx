@@ -159,7 +159,7 @@ export default function DistributorDetailPage() {
         'Farmacia': order.pharmacy.commercial_name,
         'Sucursal': order.sub_pharmacy?.commercial_name || '',
         'Cédula Jurídica': order.pharmacy.identification_number || '',
-        'Dirección': order.pharmacy.street_address || '',
+        'Dirección': order.sub_pharmacy?.street_address || order.pharmacy.street_address || '',
       };
       if (order.items.length === 0) {
         return [{ ...pharmacyBase, 'Producto': '', 'Presentación': '', 'Cantidad': '' as string | number }];
