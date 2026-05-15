@@ -166,7 +166,7 @@ export default function DistributorDetailPage() {
       }
       return order.items.map((item: DistributorOrderItem) => ({
         ...pharmacyBase,
-        'Producto': `${item.product.name} - ${item.dose.dose}`,
+        'Producto': `${item.product.name} ${item.dose.dose}`,
         'Cantidad': item.quantity_requested,
       }));
     });
