@@ -12,6 +12,7 @@ export interface Pharmacy {
   identification_number?: string;
   administrator_name?: string;
   is_chain?: boolean;
+  restock_type?: 'cedi' | 'pos' | null;
   status?: boolean;
   country_id?: number;
   state_id?: number;
