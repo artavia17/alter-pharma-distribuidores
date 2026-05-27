@@ -189,6 +189,7 @@ export default function ReportsPage() {
       'Farmacia': order.pharmacy.commercial_name,
       'Farmacia Legal': order.pharmacy.legal_name,
       'Sucursal': order.sub_pharmacy?.commercial_name || 'N/A',
+      'Tipo Reabastecimiento': order.pharmacy.restock_type === 'cedi' ? 'Centralizado (Cedi)' : order.pharmacy.restock_type === 'pos' ? 'Por Punto de Venta' : '',
       'Producto': order.product_dose.product.name,
       'Presentación': order.product_dose.dose,
       'Cantidad': order.quantity_requested,
@@ -206,7 +207,7 @@ export default function ReportsPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Distribución Productos');
 
     const columnWidths = [
-      { wch: 10 }, { wch: 30 }, { wch: 30 }, { wch: 30 },
+      { wch: 10 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 25 },
       { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 },
       { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
       { wch: 20 }, { wch: 30 },
@@ -506,6 +507,7 @@ export default function ReportsPage() {
                   <tr>
                     <th>ID</th>
                     <th>Farmacia</th>
+                    <th>Reabastecimiento</th>
                     <th>Producto</th>
                     <th>Presentación</th>
                     <th>Cantidad</th>
@@ -522,6 +524,22 @@ export default function ReportsPage() {
                         {order.sub_pharmacy && (
                           <span className={styles.subLabel}> - {order.sub_pharmacy.commercial_name}</span>
                         )}
+                      </td>
+                      <td>
+                        {order.pharmacy.restock_type ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            borderRadius: '9999px',
+                            padding: '2px 8px',
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            background: order.pharmacy.restock_type === 'cedi' ? '#ede9fe' : '#ffedd5',
+                            color: order.pharmacy.restock_type === 'cedi' ? '#6d28d9' : '#c2410c',
+                          }}>
+                            {order.pharmacy.restock_type === 'cedi' ? 'Cedi' : 'Pto. Venta'}
+                          </span>
+                        ) : <span style={{ color: '#9ca3af' }}>—</span>}
                       </td>
                       <td>{order.product_dose.product.name}</td>
                       <td>{order.product_dose.dose}</td>
