@@ -154,12 +154,19 @@ export default function DistributorDetailPage() {
       return;
     }
 
+    const restockTypeLabel = (type: string | null | undefined) => {
+      if (type === 'cedi') return 'Centralizado (Cedi)';
+      if (type === 'pos') return 'Por Punto de Venta';
+      return '';
+    };
+
     const data = filteredOrders.flatMap((order) => {
       const pharmacyBase = {
         'Farmacia': order.pharmacy.commercial_name,
         'Sucursal': order.sub_pharmacy?.commercial_name || '',
         'Cédula Jurídica': order.sub_pharmacy?.identification_number || order.pharmacy.identification_number || '',
         'Dirección': order.sub_pharmacy?.street_address || order.pharmacy.street_address || '',
+        'Tipo Reabastecimiento': restockTypeLabel(order.pharmacy.restock_type),
       };
       if (order.items.length === 0) {
         return [{ ...pharmacyBase, 'Producto': '', 'Cantidad': '' as string | number }];
@@ -181,8 +188,8 @@ export default function DistributorDetailPage() {
       { wch: 25 }, // Sucursal
       { wch: 20 }, // Cédula Jurídica
       { wch: 35 }, // Dirección
+      { wch: 25 }, // Tipo Reabastecimiento
       { wch: 40 }, // Producto
-      { wch: 30 }, // Presentación
       { wch: 12 }, // Cantidad
     ];
     worksheet['!cols'] = columnWidths;
@@ -481,6 +488,7 @@ export default function DistributorDetailPage() {
                 <tr>
                   <th>N° Orden</th>
                   <th>Farmacia</th>
+                  <th>Reabastecimiento</th>
                   <th>Productos</th>
                   <th>Items</th>
                   <th>Cantidad Total</th>
@@ -493,7 +501,7 @@ export default function DistributorDetailPage() {
               <tbody>
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className={styles.noData}>
+                    <td colSpan={10} className={styles.noData}>
                       {hasActiveFilters() ? 'No se encontraron órdenes con los filtros aplicados' : 'No hay órdenes para mostrar'}
                     </td>
                   </tr>
@@ -508,6 +516,22 @@ export default function DistributorDetailPage() {
                         {order.sub_pharmacy && (
                           <div style={{ fontSize: '12px', color: '#6b7280' }}>Sub: {order.sub_pharmacy.commercial_name}</div>
                         )}
+                      </td>
+                      <td>
+                        {order.pharmacy.restock_type ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            borderRadius: '9999px',
+                            padding: '2px 8px',
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            background: order.pharmacy.restock_type === 'cedi' ? '#ede9fe' : '#ffedd5',
+                            color: order.pharmacy.restock_type === 'cedi' ? '#6d28d9' : '#c2410c',
+                          }}>
+                            {order.pharmacy.restock_type === 'cedi' ? 'Cedi' : 'Pto. Venta'}
+                          </span>
+                        ) : <span style={{ color: '#9ca3af' }}>—</span>}
                       </td>
                       <td>
                         {order.items.length > 0
@@ -574,6 +598,25 @@ export default function DistributorDetailPage() {
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Farmacia</span>
                   <span className={styles.detailValue}>{selectedOrder.pharmacy.commercial_name}</span>
+                </div>
+                <div className={styles.detailItem}>
+                  <span className={styles.detailLabel}>Tipo Reabastecimiento</span>
+                  <span className={styles.detailValue}>
+                    {selectedOrder.pharmacy.restock_type ? (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        borderRadius: '9999px',
+                        padding: '2px 8px',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        background: selectedOrder.pharmacy.restock_type === 'cedi' ? '#ede9fe' : '#ffedd5',
+                        color: selectedOrder.pharmacy.restock_type === 'cedi' ? '#6d28d9' : '#c2410c',
+                      }}>
+                        {selectedOrder.pharmacy.restock_type === 'cedi' ? 'Centralizado (Cedi)' : 'Por Punto de Venta'}
+                      </span>
+                    ) : <span style={{ color: '#9ca3af' }}>—</span>}
+                  </span>
                 </div>
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Email Farmacia</span>

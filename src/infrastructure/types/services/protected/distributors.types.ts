@@ -95,6 +95,7 @@ export interface OrderPharmacy {
   phone: string;
   identification_number?: string;
   street_address?: string;
+  restock_type?: string | null;
 }
 
 // Product for orders
