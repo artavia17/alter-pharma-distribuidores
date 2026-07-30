@@ -162,6 +162,7 @@ export default function DistributorDetailPage() {
 
     const data = filteredOrders.flatMap((order) => {
       const pharmacyBase = {
+        'N° Orden': order.order_number,
         'Farmacia': order.pharmacy.commercial_name,
         'Sucursal': order.sub_pharmacy?.commercial_name || '',
         'Cédula Jurídica': order.sub_pharmacy?.identification_number || order.pharmacy.identification_number || '',

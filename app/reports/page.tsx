@@ -186,6 +186,7 @@ export default function ReportsPage() {
 
     const exportData = orders.map((order: any) => ({
       'ID Orden': order.id,
+      'N° Orden': order.order_number,
       'Farmacia': order.pharmacy.commercial_name,
       'Farmacia Legal': order.pharmacy.legal_name,
       'Sucursal': order.sub_pharmacy?.commercial_name || 'N/A',

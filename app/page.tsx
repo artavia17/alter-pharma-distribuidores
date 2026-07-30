@@ -144,6 +144,7 @@ export default function Home() {
       const restockTypeLabel = (rt?: string | null) =>
         rt === 'cedi' ? 'Centralizado (Cedi)' : rt === 'pos' ? 'Por Punto de Venta' : '';
       const pharmacyBase = {
+        'N° Orden': order.order_number,
         'Farmacia': order.pharmacy.commercial_name,
         'Sucursal': order.sub_pharmacy?.commercial_name || '',
         'Tipo Reabastecimiento': restockTypeLabel(order.pharmacy.restock_type),
