@@ -184,9 +184,21 @@ export default function ReportsPage() {
 
     const orders = productDistributionData.data;
 
-    const exportData = orders.map((order: any) => ({
+    const exportData = orders.map((order: any) => {
+      const authNumbers = (order.items ?? [])
+        .flatMap((item: any) => {
+          try {
+            const ids = typeof item.redemption_transaction_ids === 'string'
+              ? JSON.parse(item.redemption_transaction_ids)
+              : item.redemption_transaction_ids;
+            return Array.isArray(ids) ? ids : [];
+          } catch { return []; }
+        })
+        .filter(Boolean);
+      return {
       'ID Orden': order.id,
       'N° Orden': order.order_number,
+      'N° Autorización': authNumbers.length > 0 ? authNumbers.join(', ') : '',
       'Farmacia': order.pharmacy.commercial_name,
       'Farmacia Legal': order.pharmacy.legal_name,
       'Sucursal': order.sub_pharmacy?.commercial_name || 'N/A',
@@ -201,14 +213,15 @@ export default function ReportsPage() {
       'Fecha Enviado': order.shipped_at ? new Date(order.shipped_at).toLocaleString('es-ES') : '',
       'Fecha Entregado': order.delivered_at ? new Date(order.delivered_at).toLocaleString('es-ES') : '',
       'Notas': order.notes || '',
-    }));
+    };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Distribución Productos');
 
     const columnWidths = [
-      { wch: 10 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 25 },
+      { wch: 10 }, { wch: 22 }, { wch: 22 }, { wch: 30 }, { wch: 30 }, { wch: 25 },
       { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 },
       { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
       { wch: 20 }, { wch: 30 },
@@ -507,6 +520,7 @@ export default function ReportsPage() {
                 <thead>
                   <tr>
                     <th>ID</th>
+                    <th>N° Autorización</th>
                     <th>Farmacia</th>
                     <th>Reabastecimiento</th>
                     <th>Producto</th>
@@ -517,9 +531,23 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {productDistributionData.data.map((order: any) => (
+                  {productDistributionData.data.map((order: any) => {
+                    const authNumbers = (order.items ?? [])
+                      .flatMap((item: any) => {
+                        try {
+                          const ids = typeof item.redemption_transaction_ids === 'string'
+                            ? JSON.parse(item.redemption_transaction_ids)
+                            : item.redemption_transaction_ids;
+                          return Array.isArray(ids) ? ids : [];
+                        } catch { return []; }
+                      })
+                      .filter(Boolean);
+                    return (
                     <tr key={order.id}>
                       <td>#{order.id}</td>
+                      <td style={{ fontWeight: 500, color: '#1d4ed8' }}>
+                        {authNumbers.length > 0 ? authNumbers.map((n: number) => `#${n}`).join(', ') : '—'}
+                      </td>
                       <td>
                         {order.pharmacy.commercial_name}
                         {order.sub_pharmacy && (
@@ -552,7 +580,8 @@ export default function ReportsPage() {
                       </td>
                       <td>{new Date(order.requested_at).toLocaleDateString('es-ES')}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
