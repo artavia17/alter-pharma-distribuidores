@@ -59,6 +59,7 @@ export interface OrderItem {
   product: Product;
   dose: Dose;
   quantity_requested: number;
+  authorization_numbers?: number[];
 }
 
 export interface RestockOrder {
