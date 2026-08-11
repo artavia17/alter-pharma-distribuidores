@@ -176,6 +176,7 @@ export default function DistributorDetailPage() {
         ...pharmacyBase,
         'Producto': `${item.product.name} ${item.dose.dose}`,
         'Cantidad': item.quantity_requested,
+        'N° Autorización': (item.authorization_numbers ?? []).map((n: number) => `#${n}`).join(', ') || '',
       }));
     });
 

@@ -126,6 +126,7 @@ export interface DistributorOrderItem {
   product: OrderProduct;
   dose: OrderDose;
   quantity_requested: number;
+  authorization_numbers?: number[];
 }
 
 // Distributor Restock Order
